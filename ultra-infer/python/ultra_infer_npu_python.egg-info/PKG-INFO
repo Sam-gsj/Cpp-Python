@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: ultra-infer-npu-python
+Version: 1.1.1
+Summary: Deploy Kit Tool For Deeplearning models.
+Home-page: UNKNOWN
+Author: ultra_infer
+License: Apache 2.0
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Provides-Extra: mypy
+Provides-Extra: pyonly
+
+UNKNOWN
+
