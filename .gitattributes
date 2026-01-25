@@ -1,0 +1,1 @@
+ultra-infer/ultra_infer/runtime/rkmpp/3rdparty/FFmpeg4.4/lib/*.a filter=lfs diff=lfs merge=lfs -text
