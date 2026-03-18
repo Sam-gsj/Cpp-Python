@@ -214,11 +214,6 @@ void Runtime::Show(std::string url_str, ThreadSafeQueue* q,std::string ip,std::s
 
 bool Runtime::Init(const RuntimeOption &_option) {
   option = _option;
-  testPool_ = std::make_shared<rknnPool<rkResnet, resnet_input, resnet_results>>(option.model_file,100);
-  if (testPool_->init() != 0)
-  {
-      INFOE("rknnPool init fail!\n");
-  }
   // Choose default backend by model format and device if backend is not
   // specified
   if (option.backend == Backend::UNKNOWN) {
@@ -286,20 +281,6 @@ bool Runtime::Infer(std::vector<FDTensor> &input_tensors,
   return backend_->Infer(input_tensors, output_tensors);
 }
 
-void Runtime::process_input(std::shared_ptr<rknnPool<rkResnet, resnet_input, resnet_results>> testPool,resnet_input& input,std::vector<resnet_results>& results_vec) {
-    // 向线程池投递任务
-    testPool->put(input);
-
-    // 获取结果
-    resnet_results results;
-    testPool->get(results);
-
-    // 使用互斥锁保护对结果集的访问
-    {
-        std::lock_guard<std::mutex> lock(results_mutex);
-        results_vec.push_back(results);
-    }
-}
 
 void Runtime::InitMat(std::string url_str,std::string ip,std::string password){
   if(stop_.load()){
@@ -331,34 +312,41 @@ void Runtime::Stop(){
 
 std::vector<cv::Mat> Runtime::MasterGSJ(const char* model_name,cv::Mat input_image,int ROWS, int COLS)
 {
-    std::vector<resnet_results> results_vec;
-    int frames = 0;
-    std::vector<cv::Mat> outputs;
-    cv::Scalar mean_val = cv::mean(input_image);
-    if (mean_val[0] < 1.0 && mean_val[1] < 1.0 && mean_val[2] < 1.0) {
-        int image_height = input_image.rows;  // 图像块的高度
-        int image_width = input_image.cols;    // 图像块的宽度
-        for(int i =0; i < 5 ; i++){
-            cv::Mat output_image(image_height, image_width, CV_8UC3, cv::Scalar(0, 0, 0));
-            outputs.push_back(output_image);
-        }
-        return outputs;
-    }
-    std::vector<resnet_input> inputs = split_image(input_image,ROWS,COLS); 
-    std::vector<std::future<void>> futures;
-    dpool::ThreadPool Pool(100);
-    for (auto& input : inputs) {
-        futures.push_back(Pool.submit(process_input, testPool_, std::ref(input),std::ref(results_vec)));
-    }
-    // 等待所有任务完成
-    for (auto& future : futures) {
-        future.get();  
-    }
-  
-    outputs = synthesize_image(inputs, results_vec,ROWS,COLS);
+    SuperrkResnet infer(model_name,3);
+    auto outputs = infer.Predict(input_image, ROWS, COLS); //ROWS, COLS 用于切割图像
     return outputs;
-    
 }
+
+// std::vector<cv::Mat> Runtime::MasterGSJ(const char* model_name,cv::Mat input_image,int ROWS, int COLS)
+// {
+//     std::vector<resnet_results> results_vec;
+//     int frames = 0;
+//     std::vector<cv::Mat> outputs;
+//     // cv::Scalar mean_val = cv::mean(input_image);
+//     // if (mean_val[0] < 1.0 && mean_val[1] < 1.0 && mean_val[2] < 1.0) {
+//     //     int image_height = input_image.rows;  // 图像块的高度
+//     //     int image_width = input_image.cols;    // 图像块的宽度
+//     //     for(int i =0; i < 5 ; i++){
+//     //         cv::Mat output_image(image_height, image_width, CV_8UC3, cv::Scalar(0, 0, 0));
+//     //         outputs.push_back(output_image);
+//     //     }
+//     //     return outputs;
+//     // }
+//     std::vector<resnet_input> inputs = split_image(input_image,ROWS,COLS); 
+//     std::vector<std::future<void>> futures;
+//     dpool::ThreadPool Pool(100);
+//     for (auto& input : inputs) {
+//         futures.push_back(Pool.submit(process_input, testPool_, std::ref(input),std::ref(results_vec)));
+//     }
+//     // 等待所有任务完成
+//     for (auto& future : futures) {
+//         future.get();  
+//     }
+  
+//     outputs = synthesize_image(inputs, results_vec,ROWS,COLS);
+//     return outputs;
+    
+// }
 
 bool Runtime::GetMat(std::vector<FDTensor> *output_tensors){
   cv::Mat frame;

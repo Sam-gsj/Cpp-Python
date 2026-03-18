@@ -132,33 +132,7 @@ void BindRuntime(pybind11::module &m) {
              }
              return results;
            })   
-      // .def("get_mat_rkmpp",
-      //      [](Runtime &self, std::string &url_str) {
-      //        std::vector<FDTensor> output_tensors;   //********** */
-      //        std::vector<cv::Mat> outputs = self.GetMatRkMpp(url_str); 
-      //        output_tensors.resize(outputs.size());
-      //        for(int i = 0 ; i < outputs.size(); i++){
-      //           size_t required_size = outputs[i].total() * outputs[i].elemSize();
-      //           output_tensors[i].buffer_ = malloc(required_size);
-      //           std::memcpy(output_tensors[i].buffer_, outputs[i].data, outputs[i].total() * outputs[i].elemSize()); 
-      //           std::vector<int64_t> output_shape ;
-      //           output_shape.push_back(outputs[i].rows);
-      //           output_shape.push_back(outputs[i].cols);
-      //           output_shape.push_back(outputs[i].channels());
-      //           output_tensors[i].shape = output_shape;
-      //           output_tensors[i].dtype = FDDataType::UINT8;
-      //        }        
-      //        std::vector<pybind11::array> results;
-      //        results.reserve(output_tensors.size());
-      //        for (size_t i = 0; i < output_tensors.size(); ++i) {
-      //          auto numpy_dtype = FDDataTypeToNumpyDataType(output_tensors[i].dtype);
-      //          results.emplace_back(
-      //              pybind11::array(numpy_dtype, output_tensors[i].shape));
-      //          memcpy(results[i].mutable_data(), output_tensors[i].Data(),
-      //                 output_tensors[i].Numel() * FDDataTypeSize(output_tensors[i].dtype));
-      //        }
-      //        return results;
-      //      })                   
+                 
       .def("init_mat",
            [](Runtime &self, std::string &url_str,std::string ip = "192.168.1.35",std::string password = "firefly") {
                self.InitMat(url_str,ip,password); 
@@ -185,7 +159,7 @@ void BindRuntime(pybind11::module &m) {
              }
              std::vector<FDTensor> outputs;
              if (!self.Infer(inputs, &outputs)) {
-               throw std::runtime_error("Failed to inference with Runtime.");
+                throw std::runtime_error("Failed to inference with Runtime.");
              }
              return outputs;
            })

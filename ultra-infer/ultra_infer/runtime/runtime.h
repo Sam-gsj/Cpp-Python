@@ -23,7 +23,7 @@
 #include "ultra_infer/runtime/backends/backend.h"
 #include "ultra_infer/runtime/runtime_option.h"
 #include "ultra_infer/utils/perf.h"
-#include "ultra_infer/runtime/gsj/main_thread.h"
+#include "ultra_infer/runtime/gsj/rkResnet.hpp"
 #include "ultra_infer/runtime/rkmpp/include/main_rk.h"
 #include "ultra_infer/runtime/ThreadSafeQueue.h"
 /** \brief All C++ UltraInfer APIs are defined inside this namespace
@@ -127,7 +127,7 @@ public:
     return backend_->benchmark_result_.time_of_runtime;
   }
   std::vector<cv::Mat> MasterGSJ(const char* model_name,cv::Mat input_image,int ROWS, int COLS);
-  static void process_input(std::shared_ptr<rknnPool<rkResnet, resnet_input, resnet_results>> testPool,resnet_input& input,std::vector<resnet_results>& results_vec);
+  
   ~Runtime(){
     if(thread_.joinable()){
       thread_.join();
@@ -148,7 +148,6 @@ private:
   std::unique_ptr<BaseBackend> backend_;
   std::vector<FDTensor> input_tensors_;
   std::vector<FDTensor> output_tensors_;
-  std::shared_ptr<rknnPool<rkResnet, resnet_input, resnet_results>> testPool_;
   ThreadSafeQueue image_queue_;
   std::thread thread_;
   std::atomic<bool> stop_ = false;

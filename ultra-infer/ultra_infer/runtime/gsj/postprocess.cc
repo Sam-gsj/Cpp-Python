@@ -452,83 +452,146 @@ void softmax(float* array, int size) {
 }
 
 
+// std::vector<cv::Mat> synthesize_image(std::vector<resnet_input>& inputs, std::vector<resnet_results>& results_vec) {
+//   std::vector<cv::Mat> res;
 
+//   int block_height = inputs[0].img.rows;  // 图像块的高度
+//   int block_width = inputs[0].img.cols;    // 图像块的宽度
+
+//   int num_blocks = results_vec.size();  // 获取图像块的数量
+
+//   int image_height = ROWS * block_height;  // 合成图像的总高度
+//   int image_width = COLS * block_width;    // 合成图像的总宽度
+//   int NUM_CLASSES = 5;
+//   for(int i =0; i < NUM_CLASSES ; i++){
+//       cv::Mat output_image(image_height, image_width, CV_8UC3, cv::Scalar(0, 0, 0));
+//       res.push_back(output_image);
+//   }
+
+//   if (ROWS <= 0 || COLS <= 0) {
+//       std::cerr << "Invalid ROWS or COLS values!" << std::endl;
+//       return cv::Mat();  // 返回空图像表示出错
+//   }
+//   for (const auto& result : results_vec) {
+//     int block_id = result.id;  // 当前图像块的ID
+    
+//     // 首先检查block_id的有效性，提前在循环早期过滤无效数据
+//     if (block_id < 0 || block_id >= inputs.size()) {
+//         std::cerr << "Invalid block ID: " << block_id << std::endl;
+//         continue;
+//     }
+    
+//     // 获取当前图像块的唯一类别
+//     int cls = result.result[0].cls;
+    
+//     // 检查类别是否在有效范围内
+//     if (cls < 0 || cls >= NUM_CLASSES) {
+//         std::cerr << "Block ID " << block_id << " has invalid class: " << cls << std::endl;
+//         continue;
+//     }
+    
+//     // 计算该块在合成图像中的位置索引
+//     int row_idx = block_id / COLS;
+//     int col_idx = block_id % COLS;
+    
+//     // 计算偏移量
+//     int y_offset = row_idx * block_height;
+//     int x_offset = col_idx * block_width;
+    
+//     // 检查边界是否有效
+//     if (x_offset < 0 || y_offset < 0 || 
+//         x_offset + block_width > image_width || 
+//         y_offset + block_height > image_height) {
+//         std::cerr << "Block ID " << block_id << " position out of bounds: (" 
+//                   << x_offset << ", " << y_offset << ")" << std::endl;
+//         continue;
+//     }
+    
+//     // 检查输入图像是否有效
+//     const auto& input = inputs[block_id];
+//     if (input.img.empty()) {
+//         std::cerr << "Block ID " << block_id << " has empty image" << std::endl;
+//         continue;
+//     }
+    
+//     // 检查图像尺寸是否匹配
+//     if (input.img.rows != block_height || input.img.cols != block_width) {
+//         std::cerr << "Block ID " << block_id << " has mismatched size: (" 
+//                   << input.img.cols << "x" << input.img.rows << ")" << std::endl;
+//         continue;
+//     }
+    
+//     // 清除目标位置原有内容（可选，确保不会有残留）
+//     res[cls](cv::Rect(x_offset, y_offset, block_width, block_height)).setTo(cv::Scalar(0, 0, 0));
+    
+//     // 将当前块复制到对应类别的图像的对应位置
+//     input.img.copyTo(res[cls](cv::Rect(x_offset, y_offset, block_width, block_height)));
+//   }
+//   return res;
+// }
 
 std::vector<cv::Mat> synthesize_image(std::vector<resnet_input>& inputs, std::vector<resnet_results>& results_vec,int ROWS , int COLS) {
-  std::vector<cv::Mat> res;
+    std::vector<cv::Mat> res;
 
-  int block_height = inputs[0].img.rows;  // 图像块的高度
-  int block_width = inputs[0].img.cols;    // 图像块的宽度
+    if (inputs.empty()) {
+        std::cerr << "No input images provided" << std::endl;
+        return res;
+    }
+    int block_height = inputs[0].img.rows;  // 假设所有块大小一致
+    int block_width  = inputs[0].img.cols;
 
-  int num_blocks = results_vec.size();  // 获取图像块的数量
+    int image_height = ROWS * block_height;
+    int image_width  = COLS * block_width;
 
-  int image_height = ROWS * block_height;  // 合成图像的总高度
-  int image_width = COLS * block_width;    // 合成图像的总宽度
-  int NUM_CLASSES = 5;
-  for(int i =0; i < NUM_CLASSES ; i++){
-      cv::Mat output_image(image_height, image_width, CV_8UC3, cv::Scalar(0, 0, 0));
-      res.push_back(output_image);
-  }
+    const int NUM_CLASSES = 5;
 
-  if (ROWS <= 0 || COLS <= 0) {
-      std::cerr << "Invalid ROWS or COLS values!" << std::endl;
-      return cv::Mat();  // 返回空图像表示出错
-  }
-  for (const auto& result : results_vec) {
-    int block_id = result.id;  // 当前图像块的ID
-    
-    // 首先检查block_id的有效性，提前在循环早期过滤无效数据
-    if (block_id < 0 || block_id >= inputs.size()) {
-        std::cerr << "Invalid block ID: " << block_id << std::endl;
-        continue;
+    if (ROWS <= 0 || COLS <= 0) {
+        std::cerr << "Invalid ROWS or COLS values!" << std::endl;
+        return res;
     }
-    
-    // 获取当前图像块的唯一类别
-    int cls = result.result[0].cls;
-    
-    // 检查类别是否在有效范围内
-    if (cls < 0 || cls >= NUM_CLASSES) {
-        std::cerr << "Block ID " << block_id << " has invalid class: " << cls << std::endl;
-        continue;
+
+    // 创建5张白色背景的大图
+    for (int i = 0; i < NUM_CLASSES; i++) {
+        cv::Mat output_image(image_height, image_width, CV_8UC3, cv::Scalar(255, 255, 255));
+        res.push_back(output_image);
     }
-    
-    // 计算该块在合成图像中的位置索引
-    int row_idx = block_id / COLS;
-    int col_idx = block_id % COLS;
-    
-    // 计算偏移量
-    int y_offset = row_idx * block_height;
-    int x_offset = col_idx * block_width;
-    
-    // 检查边界是否有效
-    if (x_offset < 0 || y_offset < 0 || 
-        x_offset + block_width > image_width || 
-        y_offset + block_height > image_height) {
-        std::cerr << "Block ID " << block_id << " position out of bounds: (" 
-                  << x_offset << ", " << y_offset << ")" << std::endl;
-        continue;
+
+    // 遍历所有块的分类结果
+    for (const auto& result : results_vec) {
+        int block_id = result.id;
+
+        if (block_id < 0 || block_id >= static_cast<int>(inputs.size())) {
+            std::cerr << "Invalid block ID: " << block_id << std::endl;
+            continue;
+        }
+
+        int cls = result.result[0].cls;
+        if (cls < 0 || cls >= NUM_CLASSES) {
+            std::cerr << "Block ID " << block_id << " has invalid class: " << cls << std::endl;
+            continue;
+        }
+
+        // 计算网格位置
+        int row_idx = block_id / COLS;
+        int col_idx = block_id % COLS;
+
+        int y_offset = row_idx * block_height;
+        int x_offset = col_idx * block_width;
+
+        // 边界检查
+        if (x_offset < 0 || y_offset < 0 ||
+            x_offset + block_width > image_width ||
+            y_offset + block_height > image_height) {
+            std::cerr << "Block ID " << block_id << " position out of bounds" << std::endl;
+            continue;
+        }
+
+        // 不再需要检查原始图像是否有效，因为我们不使用原始图像内容
+        // 直接把对应区域设置为黑色
+
+        cv::Rect roi(x_offset, y_offset, block_width, block_height);
+        res[cls](roi).setTo(cv::Scalar(0, 0, 0));
     }
-    
-    // 检查输入图像是否有效
-    const auto& input = inputs[block_id];
-    if (input.img.empty()) {
-        std::cerr << "Block ID " << block_id << " has empty image" << std::endl;
-        continue;
-    }
-    
-    // 检查图像尺寸是否匹配
-    if (input.img.rows != block_height || input.img.cols != block_width) {
-        std::cerr << "Block ID " << block_id << " has mismatched size: (" 
-                  << input.img.cols << "x" << input.img.rows << ")" << std::endl;
-        continue;
-    }
-    
-    // 清除目标位置原有内容（可选，确保不会有残留）
-    res[cls](cv::Rect(x_offset, y_offset, block_width, block_height)).setTo(cv::Scalar(0, 0, 0));
-    
-    // 将当前块复制到对应类别的图像的对应位置
-    input.img.copyTo(res[cls](cv::Rect(x_offset, y_offset, block_width, block_height)));
-  }
-  return res;
+
+    return res;
 }
-

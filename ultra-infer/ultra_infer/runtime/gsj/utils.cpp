@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "utils.hpp"
 #include "ilogger.h"
 
 void dump_tensor_attr(rknn_tensor_attr *attr)
@@ -82,6 +82,7 @@ int saveFloat(const char *file_name, float *output, int element_size)
 }
 
 std::vector<resnet_input> split_image(cv::Mat& image,int ROWS , int COLS) {
+
     if (image.empty()) {
         std::cerr << "Could not open or find the image!" << std::endl;
         exit(1);  // 如果加载失败，退出程序
@@ -123,3 +124,14 @@ std::vector<resnet_input> split_image(cv::Mat& image,int ROWS , int COLS) {
 }
 
 
+resnet_input get_resnet_input(std::queue<resnet_input> HJB,std::mutex& mutex_H){
+    std::unique_lock<std::mutex> U_H(mutex_H);
+    while(HJB.empty()){
+        
+    }
+    if(!HJB.empty()){
+        resnet_input input = HJB.front();
+        HJB.pop();
+    return input;
+}
+}
