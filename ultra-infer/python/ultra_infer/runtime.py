@@ -83,6 +83,39 @@ class Runtime:
 
         return self._runtime.infer_gsj(data, rows, cols)
     
+
+    def infer_paddleseg(self, data):
+        """Inference with input data.
+
+        :param data: (dict[str : numpy.ndarray])The input data dict, key value must keep same with the loaded model
+        :return list of numpy.ndarray
+        """
+        assert isinstance(data, dict) or isinstance(
+            data, list
+        ), "The input data should be type of dict or list."
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, np.ndarray) and not v.data.contiguous:
+                    data[k] = np.ascontiguousarray(data[k])
+
+        return self._runtime.infer_paddleseg(data)    
+
+    def infer_deeplabv3(self, data):
+        """Inference with input data.
+
+        :param data: (dict[str : numpy.ndarray])The input data dict, key value must keep same with the loaded model
+        :return list of numpy.ndarray
+        """
+        assert isinstance(data, dict) or isinstance(
+            data, list
+        ), "The input data should be type of dict or list."
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, np.ndarray) and not v.data.contiguous:
+                    data[k] = np.ascontiguousarray(data[k])
+
+        return self._runtime.infer_deeplabv3(data)           
+    
     def get_mat(self):
 
         return self._runtime.get_mat()    
