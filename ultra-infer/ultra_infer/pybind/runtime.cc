@@ -148,7 +148,8 @@ void BindRuntime(pybind11::module &m) {
                       outputs[i].Numel() * FDDataTypeSize(outputs[i].dtype));
              }
              return results;
-           })  
+           })             
+
       .def("infer_deeplabv3",
            [](Runtime &self, std::map<std::string, pybind11::array> &data) {
              std::vector<FDTensor> inputs(data.size());
@@ -180,7 +181,39 @@ void BindRuntime(pybind11::module &m) {
                       outputs[i].Numel() * FDDataTypeSize(outputs[i].dtype));
              }
              return results;
-           })                         
+           })      
+      .def("infer_paddleseg_sar",
+           [](Runtime &self, std::map<std::string, pybind11::array> &data) {
+             std::vector<FDTensor> inputs(data.size());
+             int index = 0;
+             for (auto iter = data.begin(); iter != data.end(); ++iter) {
+               std::vector<int64_t> data_shape;
+               data_shape.insert(data_shape.begin(), iter->second.shape(),
+                                 iter->second.shape() + iter->second.ndim());
+               auto dtype = NumpyDataTypeToFDDataType(iter->second.dtype());
+               dtype= FDDataType::UINT8;
+               // TODO(jiangjiajun) Maybe skip memory copy is a better choice
+               // use SetExternalData
+               inputs[index].Resize(data_shape, dtype);
+               memcpy(inputs[index].MutableData(), iter->second.mutable_data(),
+                      iter->second.nbytes());
+               inputs[index].name = iter->first;
+               index += 1;
+             }      
+            //  std::vector<FDTensor> outputs(self.NumOutputs());  
+             std::vector<FDTensor> outputs;   //********** */
+             self.InferPaddleSegSar(inputs, &outputs);            
+             std::vector<pybind11::array> results;
+             results.reserve(outputs.size());
+             for (size_t i = 0; i < outputs.size(); ++i) {
+               auto numpy_dtype = FDDataTypeToNumpyDataType(outputs[i].dtype);
+               results.emplace_back(
+                   pybind11::array(numpy_dtype, outputs[i].shape));
+               memcpy(results[i].mutable_data(), outputs[i].Data(),
+                      outputs[i].Numel() * FDDataTypeSize(outputs[i].dtype));
+             }
+             return results;
+           })             
       .def("get_mat",
            [](Runtime &self) {
              std::vector<FDTensor> outputs(1);   //********** */

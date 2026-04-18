@@ -27,7 +27,7 @@
 #include "ultra_infer/runtime/rkmpp/include/main_rk.h"
 #include "ultra_infer/runtime/ThreadSafeQueue.h"
 #include "ultra_infer/runtime/ppseg/ppseg.h"
-
+#include "ultra_infer/runtime/ppseg/ppseg_sar.h"
 #include "ultra_infer/runtime/deeplabv3/deeplabv3.h"
 /** \brief All C++ UltraInfer APIs are defined inside this namespace
  *
@@ -62,6 +62,8 @@ public:
             std::vector<FDTensor> *output_tensors,int ROWS, int COLS);
   bool InferPaddleSeg(std::vector<FDTensor> &input_tensors,
             std::vector<FDTensor> *output_tensors);   
+  bool InferPaddleSegSar(std::vector<FDTensor> &input_tensors,
+            std::vector<FDTensor> *output_tensors);              
   bool InferDeeplabv3(std::vector<FDTensor> &input_tensors,
             std::vector<FDTensor> *output_tensors);                       
   void InitMat(std::string url_str,std::string ip,std::string password);

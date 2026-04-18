@@ -398,7 +398,31 @@ bool Runtime::InferPaddleSeg(std::vector<FDTensor> &input_tensors,
     int image_width  = shape[1];
     cv::Mat input_image = cv::Mat(image_height,image_width,CV_8UC3,input_tensors[0].MutableData());   
 
-    PaddleSegRKNN infer(option.model_file.c_str());
+    static PaddleSegRKNN infer(option.model_file.c_str());
+    std::vector<cv::Mat> outputs = infer.Predict(input_image);
+    (*output_tensors).resize(outputs.size());
+    for(int i = 0 ; i<outputs.size();i++){
+      size_t required_size = outputs[i].total() * outputs[i].elemSize();
+      (*output_tensors)[i].buffer_ = malloc(required_size);
+      std::memcpy((*output_tensors)[i].buffer_, outputs[i].data, outputs[i].total() * outputs[i].elemSize()); 
+      std::vector<int64_t> output_shape ;
+      output_shape.push_back(outputs[i].rows);
+      output_shape.push_back(outputs[i].cols);
+      output_shape.push_back(outputs[i].channels());
+      (*output_tensors)[i].shape = output_shape;
+      (*output_tensors)[i].dtype = FDDataType::UINT8;
+    }
+    return true;                 
+}
+
+bool Runtime::InferPaddleSegSar(std::vector<FDTensor> &input_tensors,
+                    std::vector<FDTensor> *output_tensors) {
+    auto shape = input_tensors[0].Shape();
+    int image_height = shape[0];
+    int image_width  = shape[1];
+    cv::Mat input_image = cv::Mat(image_height,image_width,CV_8UC3,input_tensors[0].MutableData());   
+
+    static PaddleSegSarRKNN infer(option.model_file.c_str());
     std::vector<cv::Mat> outputs = infer.Predict(input_image);
     (*output_tensors).resize(outputs.size());
     for(int i = 0 ; i<outputs.size();i++){
@@ -422,7 +446,7 @@ bool Runtime::InferDeeplabv3(std::vector<FDTensor> &input_tensors,
     int image_width  = shape[1];
     cv::Mat input_image = cv::Mat(image_height,image_width,CV_8UC3,input_tensors[0].MutableData());   
 
-    DeepGlobeRKNN infer(option.model_file.c_str());
+    static DeepGlobeRKNN infer(option.model_file.c_str());
     std::vector<cv::Mat> outputs = infer.Predict(input_image);
     (*output_tensors).resize(outputs.size());
     for(int i = 0 ; i<outputs.size();i++){
